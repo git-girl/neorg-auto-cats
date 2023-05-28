@@ -2,12 +2,7 @@
 A Neorg module to register an AutoCommand to inject metadata 
 with the relative path from the root workspace as categories
 
-Im trying to just copy paste as much as I can from the Telescope plugin though (*~*)
-
 As per Neorg wiki on core.autocommands using the lua vim.api over the core.autocommands module
-
-I think the directory structure is similar to a regular nvim plugin
-and it gets sourced by neorg somehow
 --]]
 
 require("neorg.modules.base")
@@ -94,6 +89,34 @@ module.private = {
 		return updated_categories
 	end,
 
+  -- Copy pasted from metagen module
+	get_meta_root = function()
+		local languagetree = vim.treesitter.get_parser(buf, "norg")
+		if not languagetree then
+			return
+		end
+		local meta_root = nil
+
+		languagetree:for_each_child(function(tree)
+			if tree:lang() ~= "norg_meta" or meta_root then
+				return
+			end
+
+			local meta_tree = tree:parse()[1]
+
+			if not meta_tree then
+				return
+			end
+
+			meta_root = meta_tree:root()
+		end)
+
+		if not meta_root then
+			return
+		end
+		return meta_root
+	end,
+
 	main = function(buffer, path)
 		metadata_exists, data = module.private.get_existing_metadata(buffer)
 		-- only if there is a workspace defined
@@ -101,7 +124,7 @@ module.private = {
 		-- TODO: find  a way  to resolve default workspace name and do some extra checks there
 
 		if workspace == "default" then
-      return
+			return
 		end
 
 		categories = module.private.get_categories(path, workspace)
@@ -109,7 +132,6 @@ module.private = {
 		if not metadata_exists then
 			constructed_metadata = module.required["core.esupports.metagen"].construct_metadata(buffer)
 			constructed_metadata = module.private.set_categories(constructed_metadata, categories)
-      print(vim.inspect(constructed_metadata))
 
 			vim.api.nvim_buf_set_lines(buffer, data.range[1], data.range[2], false, constructed_metadata)
 		else
@@ -120,14 +142,42 @@ module.private = {
 			content = module.private.get_existing_metadata_content(buffer)
 			updated_categories = module.private.get_updated_categories(content, categories)
 
-      -- use treesitter to update the metadata info
-      -- LanguageTree:named_node_for_range
+			local query = vim.treesitter.query.get("norg_meta", "highlights")
+			local meta_root = module.private.get_meta_root()
+			if not meta_root then
+				return
+			end
+			print(vim.inspect(meta_root))
 
-      -- category_node = vim.treesitter.execute_query( TODO: )
+			-- returns pattern id, match, metadata  only need matches
+			for _, match in query:iter_matches(meta_root, buffer) do
+				for id, node in pairs(match) do
+          local name = query.captures[id]
+          print(id, node, name)
 
-      -- vim.treesitter.get_node_range(category_node)
+					print(vim.treesitter.get_node_text(node, buffer, {}))
 
-      -- vim.api.nvim_buf_set_text(buffer, start_row, start_col, end_row, end_col, updated_categories)
+					local start_row, start_col, end_row, end_col = vim.treesitter.get_node_range(node)
+					print(start_row, start_col, end_row, end_col)
+					-- `node` was captured by the `name` capture in the match
+
+					-- local node_data = metadata[id] -- Node level metadata
+
+					-- ... use the info here ...
+				end
+			end
+
+			print(vim.inspect(found))
+			print(vim.inspect(match))
+
+			-- print(vim.inspect(query:iter_captures()))
+			-- check if the norg_meta stuff is there
+			-- neorg.utils.ts_query_parse(language, query_string)
+			-- category_node = vim.treesitter.execute_query( TODO: )
+
+			-- vim.treesitter.get_node_range(category_node)
+
+			-- vim.api.nvim_buf_set_text(buffer, start_row, start_col, end_row, end_col, updated_categories)
 		end
 	end,
 }
@@ -148,3 +198,20 @@ function module.load()
 end
 
 return module
+
+-- local query = neorg.utils.ts_parse_query(
+-- 	"norg_meta",
+-- 	[[
+--            (pair
+--                (key) @_key
+--                [
+--                    (string)
+--      @neorg.tags.ranged_verbatim.document_meta.categories
+--                    (array
+--                        (string)
+--      @neorg.tags.ranged_verbatim.document_meta.categories)
+--                    ]
+--                (#eq? @_key "categories")
+--            )
+--        ]]
+-- )
