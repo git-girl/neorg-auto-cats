@@ -19,8 +19,9 @@ function module.setup()
     success = true,
     requires = { 
       'core.esupports.metagen',
-      'core.dirman'
-    }
+      'core.dirman',
+      'core.integrations.treesitter',
+    },
   }
 end
 
@@ -57,7 +58,6 @@ module.private = {
     return categories
   end,
 
-  -- NOTE: I think this needs to behave differently based on metadata_exists
   set_categories = function(constructed_metadata, categories) 
     for index, element in ipairs(constructed_metadata) do
       if element:match("^categories:") then
@@ -65,6 +65,31 @@ module.private = {
       end
     end 
     return constructed_metadata
+  end,
+
+  -- NOTE: This should ideally be constructed in the same way that metagen module is using TS
+  get_existing_metadata_content = function(buffer) 
+    -- WARNING: there is a bug here that on empty lines for categories the next line gets retrieved
+    -- @document.meta
+    -- title: index
+    -- description: 
+    -- authors: cherry-cat
+    -- categories: 
+    -- created: 2023-05-23
+    -- updated: 2023-05-28
+    -- version: 1.1.1
+    -- @end
+    -- RETURNS: 
+    --{
+    --   categories = "created: 2023-05-23",
+    --   description = "authors: cherry-cat",
+    --   title = "index",
+    --   updated = "2023-05-28",
+    --   version = "1.1.1"
+    -- }
+    content = module.required["core.integrations.treesitter"].get_document_metadata(buffer)
+    print(vim.inspect(content))
+    return content
   end,
 
   update_categories = function(constructed_metadata, categories) 
@@ -89,6 +114,14 @@ module.private = {
       -- i would say it should update it regardeless but i think this goes against the 
       -- neorg design of the metagen module having to be used explicitly and not overwriting so aggressively
       -- module.required["core.esuppports.metagen"]
+
+
+      print(vim.inspect(vim.treesitter.get_parser(buffer, "norg")))
+      content = module.private.get_existing_metadata_content(buffer)
+      categories = content.categories
+      if categories then 
+
+      end
 
       -- get the meta data that exists  
       -- categories = already contained categories + any categories in path that arent contained already
