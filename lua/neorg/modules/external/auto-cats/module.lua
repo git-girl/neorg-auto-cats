@@ -33,23 +33,13 @@ module.private = {
 		return module.required["core.esupports.metagen"].is_metadata_present(buffer)
 	end,
 
-	remove_file_name_from_path = function(path)
-		-- local fileName = path:match("/([^/]+)$")
-		-- if fileName then
-		--   trimmedPath = trimmedPath:gsub("/" .. fileName, "")
-		-- end
-		-- return trimmedPath
-	end,
-
 	cut_path_before_workspace = function(path, workspace)
 		index = string.find(path, workspace)
 		path = string.sub(path, index)
 		return path
 	end,
 
-	get_categories = function(path)
-		workspace = module.required["core.dirman"].get_workspace_match()
-
+	get_categories = function(path, workspace)
 		path = module.private.cut_path_before_workspace(path, workspace)
 		path = string.gsub(path, "/", " ")
 		-- remove everything after the last space
@@ -67,46 +57,59 @@ module.private = {
 		return constructed_metadata
 	end,
 
-	-- NOTE: This should ideally be constructed in the same way that metagen module is using TS
 	get_existing_metadata_content = function(buffer)
-		-- WARNING: there is a bug here that on empty lines for categories the next line gets retrieved
-		-- @document.meta
-		-- title: index
-		-- description:
-		-- authors: cherry-cat
-		-- categories:
-		-- created: 2023-05-23
-		-- updated: 2023-05-28
-		-- version: 1.1.1
-		-- @end
-		-- RETURNS:
-		--{
-		--   categories = "created: 2023-05-23",
-		--   description = "authors: cherry-cat",
-		--   title = "index",
-		--   updated = "2023-05-28",
-		--   version = "1.1.1"
-		-- }
 		content = module.required["core.integrations.treesitter"].get_document_metadata(buffer)
-		print(vim.inspect(content))
 		return content
 	end,
 
-	update_categories = function(constructed_metadata, categories) end,
-	-- if categoriesIndex then
-	--   local currentCategories = constructed_metadata[categoriesIndex]
-	--   print(categories)
-	--   local newCategories = currentCategories .. categories
-	--
-	--   constructed_metadata[categoriesIndex] = newCategories
-	-- end
+	-- TODO: refactor into smaller methods
+	get_updated_categories = function(metadata, new_categories)
+		-- handle_nil_categories()
+		existing_categories = metadata.categories
+
+		if existing_categories == vim.NIL then
+			existing_categories = ""
+		end
+
+		-- Case there are actual categories to be updated
+		-- From new_categories subtract any matches with existing categories
+		-- string_to_included_table()
+		local existing_categories_table = {}
+		for exisiting_cat in existing_categories:gmatch("%S+") do
+			existing_categories_table[exisiting_cat] = true
+		end
+
+		updated_categories = existing_categories
+		del_space_flag = false
+		for new_cat in new_categories:gmatch("%S+") do
+			if not existing_categories_table[new_cat] then
+				updated_categories = updated_categories .. new_cat .. " "
+				del_space_flag = true
+			end
+		end
+		if del_space_flag then
+			updated_categories = updated_categories:sub(1, -2)
+		end
+
+		return updated_categories
+	end,
+
 	main = function(buffer, path)
 		metadata_exists, data = module.private.get_existing_metadata(buffer)
-		categories = module.private.get_categories(path)
+		-- only if there is a workspace defined
+		workspace = module.required["core.dirman"].get_workspace_match()
+		-- TODO: find  a way  to resolve default workspace name and do some extra checks there
+
+		if workspace == "default" then
+      return
+		end
+
+		categories = module.private.get_categories(path, workspace)
 
 		if not metadata_exists then
 			constructed_metadata = module.required["core.esupports.metagen"].construct_metadata(buffer)
 			constructed_metadata = module.private.set_categories(constructed_metadata, categories)
+      print(vim.inspect(constructed_metadata))
 
 			vim.api.nvim_buf_set_lines(buffer, data.range[1], data.range[2], false, constructed_metadata)
 		else
@@ -114,15 +117,17 @@ module.private = {
 			-- neorg design of the metagen module having to be used explicitly and not overwriting so aggressively
 			-- module.required["core.esuppports.metagen"]
 
-			print(vim.inspect(vim.treesitter.get_parser(buffer, "norg")))
 			content = module.private.get_existing_metadata_content(buffer)
-			categories = content.categories
-			if categories then
-			end
+			updated_categories = module.private.get_updated_categories(content, categories)
 
-			-- get the meta data that exists
-			-- categories = already contained categories + any categories in path that arent contained already
-			-- set_categories
+      -- use treesitter to update the metadata info
+      -- LanguageTree:named_node_for_range
+
+      -- category_node = vim.treesitter.execute_query( TODO: )
+
+      -- vim.treesitter.get_node_range(category_node)
+
+      -- vim.api.nvim_buf_set_text(buffer, start_row, start_col, end_row, end_col, updated_categories)
 		end
 	end,
 }
