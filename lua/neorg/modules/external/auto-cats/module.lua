@@ -86,10 +86,10 @@ module.private = {
 			updated_categories = updated_categories:sub(1, -2)
 		end
 
-		return updated_categories
+		return "categories: " .. updated_categories
 	end,
 
-  -- Copy pasted from metagen module
+	-- Copy pasted from metagen module
 	get_meta_root = function()
 		local languagetree = vim.treesitter.get_parser(buf, "norg")
 		if not languagetree then
@@ -149,35 +149,23 @@ module.private = {
 			end
 			print(vim.inspect(meta_root))
 
+			local start_row, start_col, end_row, end_col = nil
+
 			-- returns pattern id, match, metadata  only need matches
 			for _, match in query:iter_matches(meta_root, buffer) do
 				for id, node in pairs(match) do
-          local name = query.captures[id]
-          print(id, node, name)
-
-					print(vim.treesitter.get_node_text(node, buffer, {}))
-
-					local start_row, start_col, end_row, end_col = vim.treesitter.get_node_range(node)
-					print(start_row, start_col, end_row, end_col)
-					-- `node` was captured by the `name` capture in the match
-
-					-- local node_data = metadata[id] -- Node level metadata
-
-					-- ... use the info here ...
+					local name = query.captures[id]
+					if node:type() == "key" then
+						local text = vim.treesitter.get_node_text(node, buffer, {})
+						if text == "categories" then
+              local colon_sibling_node = node:parent():child(1)
+							start_row, _ , end_row = vim.treesitter.get_node_range(colon_sibling_node)
+						end
+					end
 				end
 			end
 
-			print(vim.inspect(found))
-			print(vim.inspect(match))
-
-			-- print(vim.inspect(query:iter_captures()))
-			-- check if the norg_meta stuff is there
-			-- neorg.utils.ts_query_parse(language, query_string)
-			-- category_node = vim.treesitter.execute_query( TODO: )
-
-			-- vim.treesitter.get_node_range(category_node)
-
-			-- vim.api.nvim_buf_set_text(buffer, start_row, start_col, end_row, end_col, updated_categories)
+			vim.api.nvim_buf_set_lines(buffer, start_row, end_row, false , { updated_categories } )
 		end
 	end,
 }
@@ -198,20 +186,3 @@ function module.load()
 end
 
 return module
-
--- local query = neorg.utils.ts_parse_query(
--- 	"norg_meta",
--- 	[[
---            (pair
---                (key) @_key
---                [
---                    (string)
---      @neorg.tags.ranged_verbatim.document_meta.categories
---                    (array
---                        (string)
---      @neorg.tags.ranged_verbatim.document_meta.categories)
---                    ]
---                (#eq? @_key "categories")
---            )
---        ]]
--- )
