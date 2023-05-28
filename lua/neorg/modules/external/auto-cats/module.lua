@@ -158,14 +158,14 @@ module.private = {
 					if node:type() == "key" then
 						local text = vim.treesitter.get_node_text(node, buffer, {})
 						if text == "categories" then
-              local colon_sibling_node = node:parent():child(1)
-							start_row, _ , end_row = vim.treesitter.get_node_range(colon_sibling_node)
+							start_row, _, end_row = vim.treesitter.get_node_range(node)
 						end
 					end
 				end
 			end
 
-			vim.api.nvim_buf_set_lines(buffer, start_row, end_row, false , { updated_categories } )
+			-- Dont use nvim_buf_set_text that is hella annoying with the columns and the
+			vim.api.nvim_buf_set_lines(buffer, start_row, end_row, false, { updated_categories })
 		end
 	end,
 }
