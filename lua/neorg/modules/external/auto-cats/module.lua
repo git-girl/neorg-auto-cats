@@ -147,7 +147,6 @@ module.private = {
 			if not meta_root then
 				return
 			end
-			print(vim.inspect(meta_root))
 
 			local start_row, start_col, end_row, end_col = nil
 
@@ -164,8 +163,8 @@ module.private = {
 				end
 			end
 
-			-- Dont use nvim_buf_set_text that is hella annoying with the columns and the
-			vim.api.nvim_buf_set_lines(buffer, start_row, end_row, false, { updated_categories })
+      -- replace line updated categories
+			vim.api.nvim_buf_set_lines(buffer, start_row , start_row + 1, false , { updated_categories })
 		end
 	end,
 }
