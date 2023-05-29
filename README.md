@@ -15,7 +15,7 @@ A plugin to automatically inject metadata that adds directory structure as categ
 For example using packer: 
 
 ``` 
-use { "git-girl/neorg-auto-cats "}
+use {"git-girl/neorg-auto-cats"}
 
 ```
 in your neorg config: 
