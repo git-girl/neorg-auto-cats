@@ -75,15 +75,10 @@ module.private = {
 		end
 
 		updated_categories = existing_categories
-		del_space_flag = false
 		for new_cat in new_categories:gmatch("%S+") do
 			if not existing_categories_table[new_cat] then
-				updated_categories = updated_categories .. new_cat .. " "
-				del_space_flag = true
+				updated_categories = updated_categories .. " " .. new_cat
 			end
-		end
-		if del_space_flag then
-			updated_categories = updated_categories:sub(1, -2)
 		end
 
 		return "categories: " .. updated_categories
