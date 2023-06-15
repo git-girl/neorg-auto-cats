@@ -30,6 +30,14 @@ module.private = {
 
 	cut_path_before_workspace = function(path, workspace)
 		index = string.find(path, workspace)
+    if not index then 
+        vim.api.nvim_err_writeln([[ 
+        Couldn't find Workspace Name in Path.
+        Sorry but you need to name your Workspace the same as your 
+        Workspace Directory.
+        ]])
+        return
+    end
 		path = string.sub(path, index)
 		return path
 	end,

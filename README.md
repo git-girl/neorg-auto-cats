@@ -14,17 +14,27 @@ A plugin to automatically inject metadata that adds directory structure as categ
 
 For example using packer: 
 
-``` 
+``` lua
 use {"git-girl/neorg-auto-cats"}
 
-```
-in your neorg config: 
 ``` 
+in your neorg config: 
+
+``` lua
 require('neorg').setup {
   load = { 
-
+  ["core.dirman"] = {
+    config = {
+      workspaces = {
+        -- NOTE: your workspaces have to be named the same 
+        -- as their directory. Pro Tip TM: use Symlinks
+        General =    "~/Notes/General",
+        Work =       "~/Notes/Work",
+        Uni =        "~/Notes/Uni"
+      }
+    }
+  },
   -- all your other stuff
-
   ["external.auto-cats"] = {},
   }
 }
@@ -33,5 +43,5 @@ require('neorg').setup {
 
 ## State 
 
-It works i think.
-I think i will clean this up over the week and fix the issue on updating but then this should be good to go.
+I want to clean up the code a bit more, but yeah it works.  \
+Also I want to add a hierarchical generate-workspace-summary that respects your folder structure
