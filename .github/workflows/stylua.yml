@@ -22,4 +22,4 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           version: latest # NOTE: we recommend pinning to a specific version in case of formatting changes
-          args: -v --verify .
+          args: --check .
