@@ -1,7 +1,25 @@
-- uses: actions/checkout@v3
-- uses: JohnnyMorganz/stylua-action@v3
-  with:
-    token: ${{ secrets.GITHUB_TOKEN }}
-    version: latest # NOTE: we recommend pinning to a specific version in case of formatting changes
-    # CLI arguments
-    args: -v --verify
+name: StyLua Workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  stylua:
+    name: StyLua
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Run StyLua Action
+        uses: JohnnyMorganz/stylua-action@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest # NOTE: we recommend pinning to a specific version in case of formatting changes
+          args: --check .
