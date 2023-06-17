@@ -1,3 +1,4 @@
+
 --[[
 A Neorg module to register an AutoCommand to inject metadata 
 with the relative path from the root workspace as categories
@@ -16,6 +17,7 @@ function module.setup()
 			"core.esupports.metagen",
 			"core.dirman",
 			"core.integrations.treesitter",
+			"core.neorgcmd",
 		},
 	}
 end
@@ -24,7 +26,7 @@ module.private = {
 	enabled = true,
 
 	-- returns true or false
-	get_existing_metadata = function(buffer)
+	check_for_existing_metadata = function(buffer)
 		return module.required["core.esupports.metagen"].is_metadata_present(buffer)
 	end,
 
@@ -32,10 +34,10 @@ module.private = {
 		index = string.find(path, workspace)
 		if not index then
 			vim.api.nvim_err_writeln([[ 
-        Couldn't find Workspace Name in Path.
-        Sorry but you need to name your Workspace the same as your 
-        Workspace Directory.
-        ]])
+      Couldn't find Workspace Name in Path.
+      Sorry but you need to name your Workspace the same as your 
+      Workspace Directory.
+      ]])
 			return
 		end
 		path = string.sub(path, index)
@@ -120,11 +122,11 @@ module.private = {
 		return meta_root
 	end,
 
-	main = function(buffer, path)
-		metadata_exists, data = module.private.get_existing_metadata(buffer)
+	auto_cat_main = function(buffer, path)
+		metadata_exists, data = module.private.check_for_existing_metadata(buffer)
 		-- only if there is a workspace defined
 		workspace = module.required["core.dirman"].get_workspace_match()
-		-- TODO: find  a way  to resolve default workspace name and do some extra checks there
+		-- TODO: find a way  to resolve default workspace name and do some extra checks there
 
 		if workspace == "default" then
 			return
@@ -170,6 +172,18 @@ module.private = {
 			vim.api.nvim_buf_set_lines(buffer, start_row, start_row + 1, false, { updated_categories })
 		end
 	end,
+
+	format_categories_main = function(buffer, path) end,
+
+	format_categories_cmd_table = {
+		["format-cats"] = {
+			args = 0,
+			condition = "norg",
+			name = "neorg-auto-cats.format-cats",
+		},
+	},
+
+	-- end module private
 }
 
 function module.load()
@@ -182,9 +196,22 @@ function module.load()
 		callback = function(ev)
 			buffer = ev.buf
 			path = ev.file
-			module.private.main(buffer, path)
+			module.private.auto_cat_main(buffer, path)
 		end,
 	})
+
+	-- not a user command but register the command as a Neorg command
+	module.required["core.neorgcmd"].add_commands_from_table(module.private.format_categories_cmd_table)
+	-- listen to the event
+	module.events.subscribed = {
+		["core.neorgcmd"] = {
+			["neorg-auto-cats.format-cats"] = true, -- Has the same name as our "name" variable had in the "data" table },
+		},
+	}
+end
+
+function module.on_event(event)
+	print(vim.inspect("Hey there you did something :)"))
 end
 
 return module
