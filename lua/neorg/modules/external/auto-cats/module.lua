@@ -30,14 +30,14 @@ module.private = {
 
 	cut_path_before_workspace = function(path, workspace)
 		index = string.find(path, workspace)
-    if not index then 
-        vim.api.nvim_err_writeln([[ 
+		if not index then
+			vim.api.nvim_err_writeln([[ 
         Couldn't find Workspace Name in Path.
         Sorry but you need to name your Workspace the same as your 
         Workspace Directory.
         ]])
-        return
-    end
+			return
+		end
 		path = string.sub(path, index)
 		return path
 	end,
@@ -166,8 +166,8 @@ module.private = {
 				end
 			end
 
-      -- replace line updated categories
-			vim.api.nvim_buf_set_lines(buffer, start_row , start_row + 1, false , { updated_categories })
+			-- replace line updated categories
+			vim.api.nvim_buf_set_lines(buffer, start_row, start_row + 1, false, { updated_categories })
 		end
 	end,
 }
