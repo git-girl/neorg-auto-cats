@@ -18,6 +18,7 @@ function module.setup()
 			"core.dirman",
 			"core.integrations.treesitter",
 			"core.neorgcmd",
+      "core.fs"
 		},
 	}
 end
@@ -127,6 +128,8 @@ module.private = {
 		-- only if there is a workspace defined
 		workspace = module.required["core.dirman"].get_workspace_match()
 		-- TODO: find a way  to resolve default workspace name and do some extra checks there
+    -- FIX: an option would be to use get_workspace to get at the path of the default 
+    -- i think jsut using that path would also make things easier here
 
 		if workspace == "default" then
 			return
@@ -173,7 +176,39 @@ module.private = {
 		end
 	end,
 
-	format_categories_main = function(buffer, path) end,
+  -- INFO: THIS IS THE FORMAT COMMAND STUFF
+
+	format_categories_main = function(buffer) 
+		local workspace = module.required["core.dirman"].get_current_workspace()
+    local ws_path = workspace[2]
+    
+
+    -- TODO: left of at this kinda working but I need a thing 
+    -- to ignore all hidden .dirs like .git
+    print(vim.inspect(module.private.directory_map(ws_path)))
+    -- TODO: take this and then match the top level names against things in cats 
+    -- voila proper hierarchy cats
+
+    -- module.private.directory_map(workspace)
+  end,
+
+  directory_map = function(path)
+      local directories = {}
+  
+      local function exploreDirectory(subPath)
+          for name, type in vim.fs.dir(subPath) do
+              if type == "directory" then
+                  local dirPath = subPath .. "/" .. name
+                  table.insert(directories, dirPath)
+                  exploreDirectory(dirPath)
+              end
+          end
+      end
+  
+      exploreDirectory(path)
+  
+      return directories
+  end,
 
 	format_categories_cmd_table = {
 		["format-cats"] = {
@@ -211,7 +246,9 @@ function module.load()
 end
 
 function module.on_event(event)
-	print(vim.inspect("Hey there you did something :)"))
+    if event.type == "core.neorgcmd.events.neorg-auto-cats.format-cats" then
+	    module.private.format_categories_main(event.buffer, event.filehead)
+    end
 end
 
 return module
