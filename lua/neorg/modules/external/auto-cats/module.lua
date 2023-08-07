@@ -5,6 +5,10 @@ with the relative path from the root workspace as categories
 As per Neorg wiki on core.autocommands using the lua vim.api over the core.autocommands module
 --]]
 
+-- TODO: fix the link insert being bad -> i wrote it in ~/Notes/General/vim/neorg_editting.norg
+--     -> thats actually a pull request because generate workspace info inserts links in the wrong format
+-- TODO: make everything stable
+
 require("neorg.modules.base")
 
 local module = neorg.modules.create("external.auto-cats")
@@ -29,7 +33,7 @@ module.private = {
 	end,
 
 	cut_path_before_workspace = function(path, workspace)
-		index = string.find(path, workspace)
+		local index = string.find(path, workspace)
 		if not index then
 			vim.api.nvim_err_writeln([[ 
         Couldn't find Workspace Name in Path.
@@ -46,7 +50,7 @@ module.private = {
 		path = module.private.cut_path_before_workspace(path, workspace)
 		path = string.gsub(path, "/", " ")
 		-- remove everything after the last space
-		categories = string.gsub(path, "%s[^%s]*$", "")
+		local categories = string.gsub(path, "%s[^%s]*$", "")
 
 		return categories
 	end,
@@ -61,14 +65,14 @@ module.private = {
 	end,
 
 	get_existing_metadata_content = function(buffer)
-		content = module.required["core.integrations.treesitter"].get_document_metadata(buffer)
+		local content = module.required["core.integrations.treesitter"].get_document_metadata(buffer)
 		return content
 	end,
 
 	-- TODO: refactor into smaller methods
 	get_updated_categories = function(metadata, new_categories)
 		-- handle_nil_categories()
-		existing_categories = metadata.categories
+		local existing_categories = metadata.categories
 
 		if existing_categories == vim.NIL then
 			existing_categories = ""
@@ -82,7 +86,7 @@ module.private = {
 			existing_categories_table[exisiting_cat] = true
 		end
 
-		updated_categories = existing_categories
+		local updated_categories = existing_categories
 		for new_cat in new_categories:gmatch("%S+") do
 			if not existing_categories_table[new_cat] then
 				updated_categories = updated_categories .. " " .. new_cat
@@ -121,20 +125,20 @@ module.private = {
 	end,
 
 	main = function(buffer, path)
-		metadata_exists, data = module.private.get_existing_metadata(buffer)
+		local metadata_exists, data = module.private.get_existing_metadata(buffer)
 		-- only if there is a workspace defined
-		workspace = module.required["core.dirman"].get_workspace_match()
+		local workspace = module.required["core.dirman"].get_workspace_match()
 		-- TODO: find  a way  to resolve default workspace name and do some extra checks there
 
 		if workspace == "default" then
 			return
 		end
 
-		categories = module.private.get_categories(path, workspace)
+		local categories = module.private.get_categories(path, workspace)
 
 		if not metadata_exists then
-			constructed_metadata = module.required["core.esupports.metagen"].construct_metadata(buffer)
-			constructed_metadata = module.private.set_categories(constructed_metadata, categories)
+			local constructed_metadata = module.required["core.esupports.metagen"].construct_metadata(buffer)
+			local constructed_metadata = module.private.set_categories(constructed_metadata, categories)
 
 			vim.api.nvim_buf_set_lines(buffer, data.range[1], data.range[2], false, constructed_metadata)
 		else
@@ -142,8 +146,8 @@ module.private = {
 			-- neorg design of the metagen module having to be used explicitly and not overwriting so aggressively
 			-- module.required["core.esuppports.metagen"]
 
-			content = module.private.get_existing_metadata_content(buffer)
-			updated_categories = module.private.get_updated_categories(content, categories)
+			local content = module.private.get_existing_metadata_content(buffer)
+			local updated_categories = module.private.get_updated_categories(content, categories)
 
 			local query = vim.treesitter.query.get("norg_meta", "highlights")
 			local meta_root = module.private.get_meta_root()
@@ -174,14 +178,14 @@ module.private = {
 
 function module.load()
 	-- TODO: check how to properly add the aucomand group
-	autocats_augroup = vim.api.nvim_create_augroup("NeorgAutoCats", { clear = false })
+	local autocats_augroup = vim.api.nvim_create_augroup("NeorgAutoCats", { clear = false })
 
 	vim.api.nvim_create_autocmd({ "BufEnter" }, {
 		desc = "Inject Metadata into Neorg file if not there, use directories for categories",
 		pattern = { "*.norg" },
 		callback = function(ev)
-			buffer = ev.buf
-			path = ev.file
+			local buffer = ev.buf
+			local path = ev.file
 			module.private.main(buffer, path)
 		end,
 	})
