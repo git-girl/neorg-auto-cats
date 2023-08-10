@@ -5,11 +5,9 @@ with the relative path from the root workspace as categories
 As per Neorg wiki on core.autocommands using the lua vim.api over the core.autocommands module
 --]]
 
--- TODO: fix the link insert being bad -> i wrote it in ~/Notes/General/vim/neorg_editting.norg
---     -> thats actually a pull request because generate workspace info inserts links in the wrong format
 -- TODO: make everything stable
 
-require("neorg.modules.base")
+local neorg = require("neorg.core")
 
 local module = neorg.modules.create("external.auto-cats")
 
