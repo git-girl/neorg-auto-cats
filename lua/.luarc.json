@@ -1,0 +1,21 @@
+{
+    "workspace.library": [
+        "/home/cherry-cat/.config/nvim",
+        "/home/cherry-cat/.local/share/nvim/site",
+        "/home/cherry-cat/.local/share/nvim/lazy/lazy.nvim",
+        "/home/cherry-cat/.local/share/nvim/lazy/mason_lspconfig",
+        "/home/cherry-cat/.local/share/nvim/lazy/which-key.nvim",
+        "/home/cherry-cat/.local/share/nvim/lazy/gitsigns",
+        "/home/cherry-cat/.local/share/nvim/lazy/nvim-lspconfig",
+        "/home/cherry-cat/.local/share/nvim/lazy/mason",
+        "/home/cherry-cat/.local/share/nvim/lazy/Comment.nvim",
+        "/home/cherry-cat/.local/share/nvim/lazy/lualine.nvim",
+        "/home/cherry-cat/.local/share/nvim/lazy/catppuccin",
+        "/usr/share/nvim/runtime",
+        "/usr/lib/nvim",
+        "/home/cherry-cat/.local/state/nvim/lazy/readme",
+        "/home/cherry-cat/.local/share/nvim/lazy/catppuccin/after",
+        "${3rd}/luassert/library",
+        "${3rd}/luv/library"
+    ]
+}
