@@ -11,6 +11,23 @@ local neorg = require("neorg.core")
 
 local module = neorg.modules.create("external.auto-cats")
 
+module.config.public = {
+	-- this flag sets whether we autosave as part of the
+	-- autocomand.
+	-- i think this is useful and not having it leads
+	-- to many buffers that are being written to and you
+	-- having to save manually which i don't like.
+	-- it's not the default because i think saving
+	-- files is evil.
+	autosave = false,
+	-- this flag sets wheter we register an autocmd to
+	-- insert the categories on default.
+	-- the workflow for having this as false probably
+	-- includes some keybind to quickly insert categories
+	-- when you want.
+	autocmd = true,
+}
+
 function module.setup()
 	return {
 		success = true,
@@ -33,13 +50,15 @@ module.private = {
 	end,
 
 	cut_path_before_workspace = function(path, workspace)
+		-- TODO: check if this needs to escape characters
+		-- but i don't think so
 		local index = string.find(path, workspace)
 		if not index then
 			vim.api.nvim_err_writeln([[
-      Couldn't find Workspace Name in Path.
-      Sorry but you need to name your Workspace the same as your
-      Workspace Directory.
-      ]])
+            Couldn't find Workspace Name in Path.
+            Sorry but you need to name your Workspace the same as your
+            Workspace Directory.
+            ]])
 			return
 		end
 		path = string.sub(path, index)
@@ -125,6 +144,8 @@ module.private = {
 	end,
 
 	auto_cat_main = function(buffer, path)
+		-- TODO: this should check guardclause against the event.filehead
+		-- being in a workspace
 		local metadata_exists, data = module.private.check_for_existing_metadata(buffer)
 		-- only if there is a workspace defined
 		local workspace = module.required["core.dirman"].get_workspace_match()
@@ -175,6 +196,13 @@ module.private = {
 			-- replace line updated categories
 			vim.api.nvim_buf_set_lines(buffer, start_row, start_row + 1, false, { updated_categories })
 		end
+
+		if module.config.public.autosave then
+			-- i'm not all to sure about this here because what
+			-- happens if some macro races this and then we
+			-- get writes to the wrong buffer no?
+			vim.cmd.write({ bang = false })
+		end
 	end,
 
 	-- INFO: THIS IS THE FORMAT COMMAND STUFF
@@ -185,8 +213,8 @@ module.private = {
 
 		-- TODO: left of at this kinda working but I need a thing
 		-- to ignore all hidden .dirs like .git
-        -- and i need to ignore all dirs defined in gitignore
-		print(vim.inspect(module.private.directory_map(ws_path)))
+		-- and i need to ignore all dirs defined in gitignore
+		-- print(vim.inspect(module.private.directory_map(ws_path)))
 		-- TODO: take this and then match the top level names against things in cats
 		-- voila proper hierarchy cats
 
@@ -223,18 +251,20 @@ module.private = {
 }
 
 function module.load()
-	-- TODO: check how to properly add the aucomand group
-	local autocats_augroup = vim.api.nvim_create_augroup("NeorgAutoCats", { clear = false })
+	if module.config.public.autocmd then
+		-- TODO: check how to properly add the aucomand group
+		local autocats_augroup = vim.api.nvim_create_augroup("NeorgAutoCats", { clear = false })
 
-	vim.api.nvim_create_autocmd({ "BufEnter" }, {
-		desc = "Inject Metadata into Neorg file if not there, use directories for categories",
-		pattern = { "*.norg" },
-		callback = function(ev)
-			local buffer = ev.buf
-			local path = ev.file
-			module.private.auto_cat_main(buffer, path)
-		end,
-	})
+		vim.api.nvim_create_autocmd({ "BufEnter" }, {
+			desc = "Inject Metadata into Neorg file if not there, use directories for categories",
+			pattern = { "*.norg" },
+			callback = function(event)
+				local buffer = event.buf
+				local path = event.file
+				module.private.auto_cat_main(buffer, path)
+			end,
+		})
+	end
 
 	-- not a user command but register the command as a Neorg command
 	module.required["core.neorgcmd"].add_commands_from_table(module.private.format_categories_cmd_table)
