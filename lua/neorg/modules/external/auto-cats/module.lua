@@ -247,6 +247,13 @@ module.private = {
 		},
 	},
 
+	insert_cats_cmd_table = {
+		["insert-cats"] = {
+			args = 0,
+			condition = "norg",
+			name = "neorg-auto-cats.insert-cats",
+		},
+	},
 	-- end module private
 }
 
@@ -268,10 +275,13 @@ function module.load()
 
 	-- not a user command but register the command as a Neorg command
 	module.required["core.neorgcmd"].add_commands_from_table(module.private.format_categories_cmd_table)
+	module.required["core.neorgcmd"].add_commands_from_table(module.private.insert_cats_cmd_table)
 	-- listen to the event
 	module.events.subscribed = {
 		["core.neorgcmd"] = {
-			["neorg-auto-cats.format-cats"] = true, -- Has the same name as our "name" variable had in the "data" table },
+            -- "Has the same name as our "name" variable had in the "data" table },"
+			["neorg-auto-cats.format-cats"] = true,
+			["neorg-auto-cats.insert-cats"] = true,
 		},
 	}
 end
@@ -279,6 +289,9 @@ end
 function module.on_event(event)
 	if event.type == "core.neorgcmd.events.neorg-auto-cats.format-cats" then
 		module.private.format_categories_main(event.buffer, event.filehead)
+	end
+	if event.type == "core.neorgcmd.events.neorg-auto-cats.insert-cats" then
+		module.private.auto_cat_main(event.buffer, event.filehead .. '/' .. event.filename)
 	end
 end
 

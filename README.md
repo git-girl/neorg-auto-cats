@@ -59,16 +59,21 @@ as part of your neorg config.
         -- having to save manually which i don't like.
         -- it's not the default because i think saving
         -- files for you is evil.
+        -- interacts with `Neorg insert-cats`
         autosave = false,
         -- this flag sets wheter we register an autocmd to
         -- insert the categories on default.
         -- the workflow for having this as false probably
-        -- includes some keybind to quickly insert categories
-        -- when you want.
+        -- includes some keybind to `Neorg insert-cats`
         autocmd = true,
     },
 },
 ```
+## Neorg Commands from this module: 
+
+| Command             | Functionality                           | Config Options        |
+|---------------------|-----------------------------------------|-----------------------|
+| `Neorg insert-cats` | inserts the categories like the autocmd | `autosave`            |
 
 ## State
 
