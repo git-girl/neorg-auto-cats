@@ -5,8 +5,6 @@ with the relative path from the root workspace as categories
 As per Neorg wiki on core.autocommands using the lua vim.api over the core.autocommands module
 --]]
 
--- TODO: make everything stable
-
 local neorg = require("neorg.core")
 
 local module = neorg.modules.create("external.auto-cats")
@@ -279,7 +277,7 @@ function module.load()
 	-- listen to the event
 	module.events.subscribed = {
 		["core.neorgcmd"] = {
-            -- "Has the same name as our "name" variable had in the "data" table },"
+			-- "Has the same name as our "name" variable had in the "data" table },"
 			["neorg-auto-cats.format-cats"] = true,
 			["neorg-auto-cats.insert-cats"] = true,
 		},
@@ -291,7 +289,7 @@ function module.on_event(event)
 		module.private.format_categories_main(event.buffer, event.filehead)
 	end
 	if event.type == "core.neorgcmd.events.neorg-auto-cats.insert-cats" then
-		module.private.auto_cat_main(event.buffer, event.filehead .. '/' .. event.filename)
+		module.private.auto_cat_main(event.buffer, event.filehead .. "/" .. event.filename)
 	end
 end
 
