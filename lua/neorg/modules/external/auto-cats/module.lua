@@ -1,13 +1,20 @@
 --[[
-A Neorg module to register an AutoCommand to inject metadata
-with the relative path from the root workspace as categories
+A Neorg module to manage and configure the other modules
+of this plugin.
 
-As per Neorg wiki on core.autocommands using the lua vim.api over the core.autocommands module
+NOTE: REFACTOR:
+
+Files to extract into: 
+- lua/neorg/auto_cats_shared_utils.lua   <-- shared utils go here
+- lua/neorg/modules/external/auto-cats   <-- entry for global config and stuff like that
+- lua/neorg/modules/external/insert-cats <-- thing for the core of auto-cats currently
+- lua/neorg/modules/external/format-cats <-- thing for the new generate workspace summary command
+
 --]]
 
-local neorg = require("neorg.core")
+Neorg = require("neorg.core")
 
-local module = neorg.modules.create("external.auto-cats")
+local module = Neorg.modules.create("external.auto-cats")
 
 module.config.public = {
 	-- this flag sets whether we autosave as part of the
@@ -34,14 +41,13 @@ function module.setup()
 			"core.dirman",
 			"core.integrations.treesitter",
 			"core.neorgcmd",
-			"core.fs",
+            "external.format_cats",
+			-- "core.fs", I think this is an unused dependency
 		},
 	}
 end
 
 module.private = {
-	enabled = true,
-
 	-- returns true or false
 	check_for_existing_metadata = function(buffer)
 		return module.required["core.esupports.metagen"].is_metadata_present(buffer)
@@ -60,8 +66,8 @@ module.private = {
 			return
 		end
 		path = string.sub(path, index)
-		return path
-	end,
+        return path
+    end,
 
 	get_categories = function(path, workspace)
 		path = module.private.cut_path_before_workspace(path, workspace)
@@ -237,14 +243,6 @@ module.private = {
 		return directories
 	end,
 
-	format_categories_cmd_table = {
-		["format-cats"] = {
-			args = 0,
-			condition = "norg",
-			name = "neorg-auto-cats.format-cats",
-		},
-	},
-
 	insert_cats_cmd_table = {
 		["insert-cats"] = {
 			args = 0,
@@ -256,6 +254,9 @@ module.private = {
 }
 
 function module.load()
+    -- TODO: important refactor check is that i can basically
+    -- inject this modules settings into  the other modules
+
 	if module.config.public.autocmd then
 		-- TODO: check how to properly add the aucomand group
 		local autocats_augroup = vim.api.nvim_create_augroup("NeorgAutoCats", { clear = false })
@@ -272,22 +273,17 @@ function module.load()
 	end
 
 	-- not a user command but register the command as a Neorg command
-	module.required["core.neorgcmd"].add_commands_from_table(module.private.format_categories_cmd_table)
 	module.required["core.neorgcmd"].add_commands_from_table(module.private.insert_cats_cmd_table)
 	-- listen to the event
 	module.events.subscribed = {
 		["core.neorgcmd"] = {
 			-- "Has the same name as our "name" variable had in the "data" table },"
-			["neorg-auto-cats.format-cats"] = true,
 			["neorg-auto-cats.insert-cats"] = true,
 		},
 	}
 end
 
 function module.on_event(event)
-	if event.type == "core.neorgcmd.events.neorg-auto-cats.format-cats" then
-		module.private.format_categories_main(event.buffer, event.filehead)
-	end
 	if event.type == "core.neorgcmd.events.neorg-auto-cats.insert-cats" then
 		module.private.auto_cat_main(event.buffer, event.filehead .. "/" .. event.filename)
 	end
