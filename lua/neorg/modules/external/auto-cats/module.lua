@@ -2,6 +2,15 @@
 A Neorg module to manage and configure the other modules
 of this plugin.
 
+This modules hands it's private and custom config over to the modules 
+it loads which is then accessible like so: 
+other_module.config.custom.public
+-> so you just prepend custom to the public thing
+
+i might also add the private config later if it makes sense
+to share more config across all plugins but this way 
+the table seemed to be much less simple
+
 NOTE: REFACTOR:
 
 Files to extract into: 
@@ -15,6 +24,8 @@ Files to extract into:
 Neorg = require("neorg.core")
 
 local module = Neorg.modules.create("external.auto-cats")
+
+-- module.config.private = { test = "test" }
 
 module.config.public = {
 	-- this flag sets whether we autosave as part of the
@@ -34,25 +45,11 @@ module.config.public = {
 }
 
 function module.setup()
-	return {
-		success = true,
-		requires = {
-			"core.esupports.metagen",
-			"core.dirman",
-			"core.integrations.treesitter",
-			"core.neorgcmd",
-            "external.format_cats",
-			-- "core.fs", I think this is an unused dependency
-		},
-	}
+	return { success = true }
 end
 
 module.private = {
 	-- returns true or false
-	check_for_existing_metadata = function(buffer)
-		return module.required["core.esupports.metagen"].is_metadata_present(buffer)
-	end,
-
 	cut_path_before_workspace = function(path, workspace)
 		-- TODO: check if this needs to escape characters
 		-- but i don't think so
@@ -68,15 +65,6 @@ module.private = {
 		path = string.sub(path, index)
         return path
     end,
-
-	get_categories = function(path, workspace)
-		path = module.private.cut_path_before_workspace(path, workspace)
-		path = string.gsub(path, "/", " ")
-		-- remove everything after the last space
-		local categories = string.gsub(path, "%s[^%s]*$", "")
-
-		return categories
-	end,
 
 	set_categories = function(constructed_metadata, categories)
 		for index, element in ipairs(constructed_metadata) do
@@ -148,24 +136,12 @@ module.private = {
 	end,
 
 	auto_cat_main = function(buffer, path)
-		-- TODO: this should check guardclause against the event.filehead
-		-- being in a workspace
-		local metadata_exists, data = module.private.check_for_existing_metadata(buffer)
-		-- only if there is a workspace defined
-		local workspace = module.required["core.dirman"].get_workspace_match()
-		-- TODO: find a way  to resolve default workspace name and do some extra checks there
-		-- FIX: an option would be to use get_workspace to get at the path of the default
-		-- i think jsut using that path would also make things easier here
-
-		if workspace == "default" then
-			return
-		end
 
 		local categories = module.private.get_categories(path, workspace)
 
 		if not metadata_exists then
 			local constructed_metadata = module.required["core.esupports.metagen"].construct_metadata(buffer)
-			local constructed_metadata = module.private.set_categories(constructed_metadata, categories)
+			constructed_metadata = module.private.set_categories(constructed_metadata, categories)
 
 			vim.api.nvim_buf_set_lines(buffer, data.range[1], data.range[2], false, constructed_metadata)
 		else
@@ -209,21 +185,6 @@ module.private = {
 		end
 	end,
 
-	-- INFO: THIS IS THE FORMAT COMMAND STUFF
-
-	format_categories_main = function(buffer)
-		local workspace = module.required["core.dirman"].get_current_workspace()
-		local ws_path = workspace[2]
-
-		-- TODO: left of at this kinda working but I need a thing
-		-- to ignore all hidden .dirs like .git
-		-- and i need to ignore all dirs defined in gitignore
-		-- print(vim.inspect(module.private.directory_map(ws_path)))
-		-- TODO: take this and then match the top level names against things in cats
-		-- voila proper hierarchy cats
-
-		-- module.private.directory_map(workspace)
-	end,
 
 	directory_map = function(path)
 		local directories = {}
@@ -243,50 +204,28 @@ module.private = {
 		return directories
 	end,
 
-	insert_cats_cmd_table = {
-		["insert-cats"] = {
-			args = 0,
-			condition = "norg",
-			name = "neorg-auto-cats.insert-cats",
-		},
-	},
-	-- end module private
+    -- TODO: debug this inserting so damn much config
+    -- like the print at the top of module.load() body 
+    -- is so much less and then the debug from main is 
+    -- super hardcore
+    -- its not even that its about loaded modules 
+    -- because In auto_cats main the thing is also much 
+    -- more limited
+    -- NOTE: maybe the issue is that i'm not matching the
+    -- config in the format of:
+    -- `neorg.config.user_config.load["module.name"].config` 
+    -- but i couldn't find anything in that direction
+    -- NOTE: imma just leave it as is atm because i think 
+    -- i can go on and fix this later
+    setup_other_module = function(name)
+        Neorg.modules.load_module(name, module.config.public)
+    end,
 }
 
 function module.load()
-    -- TODO: important refactor check is that i can basically
-    -- inject this modules settings into  the other modules
-
-	if module.config.public.autocmd then
-		-- TODO: check how to properly add the aucomand group
-		local autocats_augroup = vim.api.nvim_create_augroup("NeorgAutoCats", { clear = false })
-
-		vim.api.nvim_create_autocmd({ "BufEnter" }, {
-			desc = "Inject Metadata into Neorg file if not there, use directories for categories",
-			pattern = { "*.norg" },
-			callback = function(event)
-				local buffer = event.buf
-				local path = event.file
-				module.private.auto_cat_main(buffer, path)
-			end,
-		})
-	end
-
-	-- not a user command but register the command as a Neorg command
-	module.required["core.neorgcmd"].add_commands_from_table(module.private.insert_cats_cmd_table)
-	-- listen to the event
-	module.events.subscribed = {
-		["core.neorgcmd"] = {
-			-- "Has the same name as our "name" variable had in the "data" table },"
-			["neorg-auto-cats.insert-cats"] = true,
-		},
-	}
-end
-
-function module.on_event(event)
-	if event.type == "core.neorgcmd.events.neorg-auto-cats.insert-cats" then
-		module.private.auto_cat_main(event.buffer, event.filehead .. "/" .. event.filename)
-	end
+    -- vim.print(vim.inspect(module.config))
+    module.private.setup_other_module("external.format_cats")
+    module.private.setup_other_module("external.insert_cats")
 end
 
 return module
