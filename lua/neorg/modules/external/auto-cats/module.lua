@@ -11,6 +11,8 @@ i might also add the private config later if it makes sense
 to share more config across all plugins but this way 
 the table seemed to be much less simple
 
+TODO: add doc comments i think thats stuff like ---@return string
+
 NOTE: REFACTOR:
 
 Files to extract into: 

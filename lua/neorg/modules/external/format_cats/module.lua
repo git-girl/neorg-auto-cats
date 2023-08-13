@@ -6,6 +6,8 @@ the categories analogous to the filesystem that auto-cats
 assumes
 
 It is managed and configured via the auto-cats module.
+--TODO: check if i want to call setup as to replace 
+-- the summary module to actually use Neorg generate-workspace-summary
 --]]
 
 -- TODO: check If i can do something like taking out this bit here

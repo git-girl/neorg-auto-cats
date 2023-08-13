@@ -17,7 +17,7 @@ module.setup = function()
 		requires = {
 			"core.esupports.metagen",
 			-- "core.dirman",
-			-- "core.integrations.treesitter",
+			"core.integrations.treesitter",
 			-- "core.fs",
 			"external.auto_cats_utils",
 		},
@@ -28,8 +28,6 @@ module.load = function()
 	if module.config.custom.autocmd then
 		module.required["external.auto_cats_utils"].register_neorg_command(module.config.private.cmd_table)
 	end
-
-	-- module.required["external.auto_cats_utils"].debug_print(module.config.custom)
 end
 
 module.config.private = {
@@ -65,54 +63,106 @@ module.private = {
 		--      updatae the metadata
 		--      write them
 
-		-- this constructs metadata maybe i could be doing more stuff
-		-- already here or save those results better
-		local metadata_present, metadata_node = metagen.is_metadata_present(buffer)
-        utils.debug_print(
-        {
-            metadata_present,
-            metadata_node,
-            metadata_node.node:child_count(),
-            vim.treesitter.get_node_text(metadata_node.node, buffer),
-        })
+		local inital_metadata = private.get_initial_metadata(buffer)
+		-- utils.debug_print(inital_metadata)
 
-		local inital_metadata
+		-- TODO:
+		-- local categories = private.get_categories(path, workspace)
+		-- private.update_metdata_with_cats(inital_metadata, categories)
+		-- vim.api.nvim_buf_set_lines(buffer, metadata_node.range[1], meta.range[2], false, metadata)
+	end,
+
+    -- Needs to match the output of metagen.construct_metadata(buffer) in all cases:
+    -- so something like:
+			-- {
+			-- "@document.meta",
+			-- "title: index",
+			-- "description: ",
+			-- "authors: cherry-cat",
+			-- "categories: ",
+			-- "created: 2023-08-13",
+			-- "updated: 2023-08-13",
+			-- "version: 1.1.1",
+			-- "@end",
+			-- ""
+			-- }
+    ---@return string[]
+	get_initial_metadata = function(buffer)
+		local metagen = module.required["core.esupports.metagen"]
+		local utils = module.required["external.auto_cats_utils"]
+
+		---@type string[]
+		local inital_metadata = {}
+
+		--  TODO: this type annotation
+		--  metadata_node = node
+		-- range[1], _, range[2], _ = node:range()
+		-- range[2] = range[2] + 2
+		-- return true, {
+		--            range = range,
+		--            node = metadata_node,
+		--        }
+		local metadata_present, metadata_ranged_verbatim_tag = metagen.is_metadata_present(buffer)
+
+		-- more specifically this is always %2 = 0
+		-- @type integer
+		-- local child_count = metadata_ranged_verbatim_tag_content:child_count()
+
+		-- the 'true' treesitter nodes from the base norg parser that are the
+		-- simple paragraph strings are at the end so we get the second half
+		-- of the array
+		-- @type integer
+		-- local plain_true_ts_nodes_start_index = child_count - child_count / 2
+		-- WARN: i don't think that the true ts nodes are ordered in
+		-- the table in a specific way i get 1 0 1 0 1 0 ... for the
+		-- child counts when iterating over the entire table
+		-- maybe the true nodes are defined via not having children
+
+		-- for i = 0, child_count - 1, 1 do
+			-- @type TSNode
+			-- local plain_true_ts_metadata_node = metadata_ranged_verbatim_tag_content:child(i)
+
+			-- utils.debug_print(vim.treesitter.get_node_text(plain_true_ts_metadata_node))
+			-- utils.debug_print(plain_true_ts_metadata_node:child_count())
+			-- this is for the later half of the array
+			-- 0
+			-- 1
+			-- 0
+			-- 1
+			-- 0
+			-- 1
+			-- 0
+		-- end
+
 		if metadata_present then
-			-- NOTE: rather then this treesitter thing i could also maybe use
-			-- the metadata_node better
-			-- utils.debug_print(metadata_node.node)
-			-- userdata is a c pointer to a TSNode
-            --
-			--  local query = utils.ts_parse_query(
-			--     "norg",
-			--     [[
-			--          (ranged_verbatim_tag
-			--              (tag_name) @name
-			--              (#eq? @name "document.meta")
-			--          ) @meta
-			--     ]]
-			-- )
-			-- local _, found = query:iter_matches(root, buf)()
-			--        for id, node in pairs(found) do
-            --  NOTE: 
-            --  the node is a c pointer userdata thingy so i can hardly ask it things
-            -- get_document_metadata calls utils.ts_parse_query
-            -- which calls the vim.treesitter.query.parse() version agnostically
-            -- but that returns a Query (lua-treesitter-query)
-            -- then it calls itermatches on the query
-            -- TODO: rather then using the integrations.treesitter i just wanna get something that 
-            -- matches what construct metadata returns (probs a table)
-            -- -> iterate children insert into table
-			inital_metadata = module.required["core.integrations.treesitter"].get_document_metadata(buffer)
+			-- WARN: the first return is a table of one element so
+			-- need to retrieve its first elem then its a node with 1 child
+			-- with 1 child that wraps the actual array of nodes
+			-- that array is contains each node TWICE
+			-- first the injected language nodes
+			-- (remember meta and base norg each have their own ts parsers)
+			-- then second the 'true' treesitter nodes
+			--
+			-- this contains the node that can be itered to iter through
+			-- the duplicated array
+			---@type TSNode
+			local metadata_ranged_verbatim_tag_content = metadata_ranged_verbatim_tag.node:field("content")[1]:child(0)
+
+			for node, _ in metadata_ranged_verbatim_tag_content:iter_children() do
+				if node:type() == "paragraph_segment" then
+					table.insert(inital_metadata, vim.treesitter.get_node_text(node, buffer, nil))
+				end
+			end
+
+            -- fully match metagen.construct_metadata in adding the end and start line here as well
+            table.insert(inital_metadata, 1, "@document.metadata")
+            -- default is insert at n + 1 so this is all good
+            table.insert(inital_metadata, "@end")
 		else
 			inital_metadata = metagen.construct_metadata(buffer)
 		end
 
-		local categories = private.get_categories(path, workspace)
-
-		private.update_metdata_with_cats(inital_metadata, categories)
-
-		-- vim.api.nvim_buf_set_lines(buffer, metadata_node.range[1], meta.range[2], false, metadata)
+		return inital_metadata
 	end,
 
 	get_categories = function(path, workspace)
