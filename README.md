@@ -79,3 +79,76 @@ as part of your neorg config.
 
 I want to clean up the code a bit more, but yeah it works.  \
 Also I want to add a hierarchical generate-workspace-summary that respects your folder structure
+
+---
+
+## Dev Notes
+
+### Are Categories Unique?
+
+_with unique i mean global unhierarchical categories_
+_so that in the example we treat both foos as the same_
+_single foo_
+
+As far as i can tell no neorg spec says anything about 
+categories being unique identifiers. \
+However thinking about the neorg Roadmap and a rewrite of 
+the GTD module i think maybe there it makes more sense 
+to think of categories as unique but that's kind of a 
+different discussion.
+
+This plugin generally views categories as hierarchical.
+Take this example structure:
+```
+.
+├── bar
+│   └── foo
+└── baz
+    └── foo
+```
+from a file system perspective both `foo` directories are
+unique, that would imply that this plugin should view them 
+as unique.
+
+However from my intuition dependening on how concrete the 
+thing `foo` is the opposite might be more appropriate (i.e.
+`docker` vs `exploration`). Imo `exploration` only gains
+it's meaning through the hierarchy of directories, so this
+would be tied to its parent however `docker` is something
+i think can stand on its own.
+
+I think the default should be unique assumption
+and maybe there is an option that lets you 
+define a table of categories you want tied to 
+its parent. \
+Then i can concatenate them with a default char
+"_" you get to configure though
+( so from the example "bar exploration"
+to "bar bar_exploration" ) \ 
+This way categories are still unique.
+
+An issue i see in unqiue categories is that this
+concept kind of breaks the workspace concept and
+maybe i have a workspace `Work` and one called
+`Uni` and in both places i learn about rust and 
+i have a category `Rust` in both. \
+Now i would kind of expect both workspace 
+categories to hold all entries in the `Rust`
+category. \
+i think this happens aside from this idea of 
+specificity here because if you assume categories
+to be unique you kind of expect them to be 
+unique on a global workspace level. \
+and i think this is kinda bad as it breaks a lot 
+with the neorg setup and this would then place 
+more and more burden on this plugin to implement
+things that keep this logic across the board
+
+Aside from this which is a general 'issue' when
+thinking about workspaces and categories i think
+unique categories are pretty safe. \
+Furthermore we can just set up an option to pull
+in for workspace summary generation to pull in 
+things across workspaces for a category \
+Or another option would be a global generate 
+workspace summary.

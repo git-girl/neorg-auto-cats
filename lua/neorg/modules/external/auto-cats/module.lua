@@ -21,6 +21,11 @@ Files to extract into:
 - lua/neorg/modules/external/insert-cats <-- thing for the core of auto-cats currently
 - lua/neorg/modules/external/format-cats <-- thing for the new generate workspace summary command
 
+BUG: i think there is a bug in switching between workspaces 
+like i did one insert-cats that was fine 
+then switch workspace in one readonly that was fine
+then switched back to the first one and that broke
+
 --]]
 
 Neorg = require("neorg.core")
@@ -44,6 +49,11 @@ module.config.public = {
 	-- includes some keybind to quickly insert categories
 	-- when you want.
 	autocmd = true,
+
+    -- TODO: consider adding config for categories: so you 
+    -- can do something like this category implies this table 
+    -- of other categories
+    -- my linux category should then also always add { "beep", "boop", "catgirls" }
 }
 
 function module.setup()
