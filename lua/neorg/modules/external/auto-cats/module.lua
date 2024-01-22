@@ -1,31 +1,32 @@
 --[[
-A Neorg module to manage and configure the other modules
-of this plugin.
+    A Neorg module to manage and configure the other modules
+    of this plugin.
 
-This modules hands it's private and custom config over to the modules 
-it loads which is then accessible like so: 
-other_module.config.custom.public
--> so you just prepend custom to the public thing
+    This modules hands it's private and custom config over to the modules
+    it loads which is then accessible like so:
+    other_module.config.custom.public
+    -> so you just prepend custom to the public thing
 
-i might also add the private config later if it makes sense
-to share more config across all plugins but this way 
-the table seemed to be much less simple
+    i might also add the private config later if it makes sense
+    to share more config across all plugins but this way
+    the table seemed to be much less simple
 
-TODO: add doc comments i think thats stuff like ---@return string
+    TODO: add doc comments i think thats stuff like ---@return string
 
-NOTE: REFACTOR:
+    TODO: handle the read only case properly
 
-Files to extract into: 
-- lua/neorg/auto_cats_shared_utils.lua   <-- shared utils go here
-- lua/neorg/modules/external/auto-cats   <-- entry for global config and stuff like that
-- lua/neorg/modules/external/insert-cats <-- thing for the core of auto-cats currently
-- lua/neorg/modules/external/format-cats <-- thing for the new generate workspace summary command
+    NOTE: REFACTOR:
 
-BUG: i think there is a bug in switching between workspaces 
-like i did one insert-cats that was fine 
-then switch workspace in one readonly that was fine
-then switched back to the first one and that broke
+    Files to extract into:
+    - lua/neorg/auto_cats_shared_utils.lua   <-- shared utils go here
+    - lua/neorg/modules/external/auto-cats   <-- entry for global config and stuff like that
+    - lua/neorg/modules/external/insert-cats <-- thing for the core of auto-cats currently
+    - lua/neorg/modules/external/format-cats <-- thing for the new generate workspace summary command
 
+    BUG: i think there is a bug in switching between workspaces
+    like i did one insert-cats that was fine
+    then switch workspace in one readonly that was fine
+    then switched back to the first one and that broke
 --]]
 
 Neorg = require("neorg.core")
@@ -50,10 +51,10 @@ module.config.public = {
 	-- when you want.
 	autocmd = true,
 
-    -- TODO: consider adding config for categories: so you 
-    -- can do something like this category implies this table 
-    -- of other categories
-    -- my linux category should then also always add { "beep", "boop", "catgirls" }
+	-- TODO: consider adding config for categories: so you
+	-- can do something like this category implies this table
+	-- of other categories
+	-- my linux category should then also always add { "beep", "boop", "catgirls" }
 }
 
 function module.setup()
@@ -75,8 +76,8 @@ module.private = {
 			return
 		end
 		path = string.sub(path, index)
-        return path
-    end,
+		return path
+	end,
 
 	set_categories = function(constructed_metadata, categories)
 		for index, element in ipairs(constructed_metadata) do
@@ -148,7 +149,6 @@ module.private = {
 	end,
 
 	auto_cat_main = function(buffer, path)
-
 		local categories = module.private.get_categories(path, workspace)
 
 		if not metadata_exists then
@@ -197,7 +197,6 @@ module.private = {
 		end
 	end,
 
-
 	directory_map = function(path)
 		local directories = {}
 
@@ -216,28 +215,28 @@ module.private = {
 		return directories
 	end,
 
-    -- TODO: debug this inserting so damn much config
-    -- like the print at the top of module.load() body 
-    -- is so much less and then the debug from main is 
-    -- super hardcore
-    -- its not even that its about loaded modules 
-    -- because In auto_cats main the thing is also much 
-    -- more limited
-    -- NOTE: maybe the issue is that i'm not matching the
-    -- config in the format of:
-    -- `neorg.config.user_config.load["module.name"].config` 
-    -- but i couldn't find anything in that direction
-    -- NOTE: imma just leave it as is atm because i think 
-    -- i can go on and fix this later
-    setup_other_module = function(name)
-        Neorg.modules.load_module(name, module.config.public)
-    end,
+	-- TODO: debug this inserting so damn much config
+	-- like the print at the top of module.load() body
+	-- is so much less and then the debug from main is
+	-- super hardcore
+	-- its not even that its about loaded modules
+	-- because In auto_cats main the thing is also much
+	-- more limited
+	-- NOTE: maybe the issue is that i'm not matching the
+	-- config in the format of:
+	-- `neorg.config.user_config.load["module.name"].config`
+	-- but i couldn't find anything in that direction
+	-- NOTE: imma just leave it as is atm because i think
+	-- i can go on and fix this later
+	setup_other_module = function(name)
+		Neorg.modules.load_module(name, module.config.public)
+	end,
 }
 
 function module.load()
-    -- vim.print(vim.inspect(module.config))
-    module.private.setup_other_module("external.format_cats")
-    module.private.setup_other_module("external.insert_cats")
+	-- vim.print(vim.inspect(module.config))
+	module.private.setup_other_module("external.format_cats")
+	module.private.setup_other_module("external.insert_cats")
 end
 
 return module

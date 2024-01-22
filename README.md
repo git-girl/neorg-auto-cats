@@ -27,11 +27,9 @@ require('neorg').setup {
   ["core.dirman"] = {
     config = {
       workspaces = {
-        -- NOTE: your workspaces have to be named the same 
-        -- as their directory. Pro Tip TM: use Symlinks
         General =    "~/Notes/General",
         Work =       "~/Notes/Work",
-        Uni =        "~/Notes/Uni"
+        someOtherNameThanTheDir = "~/Notes/Uni"
       }
     }
   },

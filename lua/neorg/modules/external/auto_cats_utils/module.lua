@@ -25,11 +25,18 @@ module.public = {
 		module.required["core.neorgcmd"].add_commands_from_table(cmd_table)
 	end,
 
-	--- Returns a simple set in which you can store simple types
-	--- so things like tables will raise an error
+	-- Returns a simple set in which you can store simple types
+	-- so things like tables will raise an error
+	---@class Set
+	---@field type nil|string
+	---@field data table<boolean|string|number|integer, boolean>,
+	---@field add function,
+	---@field get function
+	---@field remove function
 	Set = {
-		---@param array table # optional array of elements of 1 type param from which to init the set
-		---@return { type: string|nil , new: function, add: function, get: function, remove: function }
+		-- constructor for Set
+		---@param array? table # optional array of elements of 1 type param from which to init the set
+		---@return Set
 		new = function(array)
 			---@type {type: nil|string, data: table<boolean|string|number|integer, boolean>}
 			local self = {
@@ -41,10 +48,11 @@ module.public = {
 			---@type string[]
 			local accepted_types = { "boolean", "string", "number", "integer" }
 
-			-- TODO:
-			-- where add needs to check element type again and account for
-			-- no type being initialized in the elseif type(array == "nil") case
-			-- this might benefit from extracting some things out of _check_against_set_type
+			-- Adds the element to the set, If Set has been initialized with a type then the element
+			-- must be of that type.
+			-- Checking against nil type as elem is important otherwise you get actual type "nil" Set
+			---@param elem boolean|string|number|integer # if set type is not nil must be of set type
+			---@return Set
 			self.add = function(elem)
 				local elem_type = type(elem)
 
@@ -68,6 +76,8 @@ module.public = {
 				return self
 			end
 
+			---@param requested_elem any # but only accepted types really make sense
+			---@return boolean # whether or not the element is included in the set
 			self.includes = function(requested_elem)
 				for _, set_elem in ipairs(self.data) do
 					if set_elem == requested_elem then
@@ -79,7 +89,17 @@ module.public = {
 
 			---@param requested_elem boolean|string|number|integer # The element to remove
 			---@param error boolean # Default: true, Whether or not to raise an error if the element isn't included
+			---@return Set
 			self.remove = function(requested_elem, error)
+				if type(requested_elem) ~= self.type then
+					error(
+						"element in array was of type: "
+							.. type(requested_elem)
+							.. " where previous type was: "
+							.. self.type
+					)
+				end
+
 				local raise_error = true
 				if error == false then
 					raise_error = false
@@ -87,6 +107,9 @@ module.public = {
 
 				for _, set_elem in ipairs(self.data) do
 					if set_elem == requested_elem then
+						-- this is safe because error checked before hand
+						-- could also fail here but this way its a bit nicer
+						---@diagnostic disable-next-line: param-type-mismatch
 						table.remove(self.data, requested_elem)
 						return self
 					end
@@ -101,6 +124,9 @@ module.public = {
 							.. " pass error=true to remove to disable this error"
 					)
 				end
+
+				-- return self for the case that turned off error behavior
+				return self
 			end
 
 			---@param elem_type string
@@ -155,17 +181,87 @@ module.public = {
 		return workspace
 	end,
 
+	-- Error if can't find WS and else return
+	-- the full path
+	---@return string
+	get_workspace_path = function(workspace) end,
+
 	-- As per notes in the readme devdoc section
-	-- this is should return a Set and note an Array
-	---@param workspace string # neorg workspace name
+	-- this is should return a Set and not an Array
+	-- think of (filepath - workspace_root) as a Set
+	---@param path string # filepath
+	---@param workspace_name string # neorg workspace name
 	---@return Set
-	get_workspace_categories = function(workspace)
-		-- QUESTION: does this return an array or a set?
-		-- + array i think categories can be duplicated
-		--   because hierarchical categories
-		-- - IF norg categories are deduplicated anyways
-		--   it doesn't make so much sense
+	get_workspace_categories = function(path, workspace_name)
+		-- this will always return a path because of the default workspace behavior
+		local workspace_path = module.required["core.dirman"].get_workspaces()[workspace_name]
+		-- thing after the last / (doesn't need to be the same as the name so its good to fetch for stability)
+		-- TODO: test this by having a { Test: '/tmp/test' } kinda mapping
+		local workspace_dir = string.match(workspace_path, "[^/]+$")
+
+		local index = string.find(path, workspace_dir)
+		if index == nil then
+			-- TODO: err msg
+			error()
+		end
+
+		-- TODO: this here and the thing below should just be made into something that
+		-- can get slices of a table and maybe also something
+		local split_path = vim.split(string.sub(path, index), "/", { trimempty = true })
+		local cats = {}
+		local len = #split_path
+		for i, value in ipairs(split_path) do
+			if i ~= len then -- skip the last elem
+				table.insert(cats, #cats + 1, value)
+			end
+		end
+
+		return module.public.Set.new(cats)
 	end,
+
+	---@param inital_metadata string[]
+	---@return string[]
+	parse_out_cats_from_metadata = function(inital_metadata)
+		for i, line in ipairs(inital_metadata) do
+            -- NOTE: that 'categories:A' isnt valid in the treesitter so 
+            -- it would be okay to say we just split on \s but its nice to
+            -- do the extra step so that when someone makes a mistake we 
+            -- actually can catch it for them
+            -- and this way we can not do the whole iter table and push into it thing
+			if vim.startswith(line, "categories:") then
+                local x = vim.split(line, ":", {trimempty = true})
+                local cat_str = table.remove(x, #x) -- last elem
+
+				local cats = vim.split(cat_str, " ", { trimempty = true })
+                return cats
+			end
+		end
+        return {}
+	end,
+
+	-- cut_path_before_workspace = function(path, workspace)
+	-- 	check if this needs to escape characters
+	-- 	-- but i don't think so
+	-- 	local index = string.find(path, workspace)
+	-- 	if not index then
+	-- 		vim.api.nvim_err_writeln([[
+	--            Couldn't find Workspace Name in Path.
+	--
+	--            ]])
+	-- 		return
+	-- 	end
+	-- 	path = string.sub(path, index)
+	-- 	return path
+	-- end,
+	--
+	-- get_categories = function(path, workspace)
+	-- 	path = module.private.cut_path_before_workspace(path, workspace)
+	-- 	path = string.gsub(path, "/", " ")
+	-- 	-- remove everything after the last space
+	-- 	local categories = string.gsub(path, "%s[^%s]*$", "")
+	--
+	-- 	return categories
+	-- end,
 }
 
 return module

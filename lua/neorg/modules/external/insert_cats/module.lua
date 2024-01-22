@@ -48,33 +48,26 @@ module.private = {
 
 		local workspace = utils.get_workspace()
 		if workspace == nil then
-			return
+			error("couldn't find a workspace in your current path >_<")
 		end
 
-		-- NOTE:control flow:
-		--
-		--     ✔️ inital metadata: branches internally back to unified thing
-		--
-		--     update the metadata: WARN: might be nice to consume stuff from different metadata things here
-        --     - the thing i think is interesting is the node index -> because maybe you could use that 
-        --     to get the categories rather then regexing it
-		--
-		--     write them
-
+        
+        -- note that inital_metadata would have categories but just in 
+        -- the format of "categories: gaygaygay girlkissing" => so no node list or anything
+        -- the ts query gets me a "gaygaygay girlkissing" 
+        --  NOTE: the norg_meta parser doesnt know of categories as its own thing so you just have to do a regex
+        --  to to get the guy that starts with the thing
+        -- 
 		---@type string[]
 		local inital_metadata = private.get_initial_metadata(buffer)
-		utils.debug_print(inital_metadata)
+        local existing_metadata_cats = utils.parse_out_cats_from_metadata(inital_metadata)
+        -- local workspace_categories = utils.get_workspace_categories(path, workspace, true)
+        ---@type Set
+        local workspace_categories = utils.get_workspace_categories(path, workspace)
 
-        -- this should be a set of strings and i want to get it via tree sitter
-        -- then with tree sitter i get  PERF:i want to carry the ts query along
-        local inital_metadata_categories
-
-        -- this an array and then you push to the set
-        -- WARN: this wouldn't be nice because then you couldn't have 
-        -- repeating hierarchical categories 
-        -- however that also depends on how neorg does it 
-        -- or maybe i can overwrite that
-        local workspace_categories = utils.get_workspace_categories(workspace)
+        for _i, cat in ipairs(existing_metadata_cats) do
+            workspace_categories = workspace_categories.add(cat)
+        end
 
         -- update_metadata_with_cats
 
